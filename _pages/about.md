@@ -71,11 +71,6 @@ The authors of the blog posts will have to declare their conflicts of interest (
 We will only ask the authors to report if they have a conflict of interest. If so, reviewers will be asked to judge if the submission is sufficiently critical and objective of the papers addressed in the blog post. 
 
 
-
-## Publication 
-
-The posts will be created and published under a unified template; see [the submission instructions]({{ '/submitting' | relative_url }}) and the [sample post]({% post_url 2025-05-07-distill-example %}) hosted on the blog of this website.
-
 #### Poster
 
 Additionally, accepted posts will have the option to present their work as a poster during the main poster session. For more information about the main poster session (time, poster format, etc.) please refer to the ICLR homepage.
