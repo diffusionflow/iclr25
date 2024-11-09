@@ -2,7 +2,7 @@
 layout: distill
 title: Generalization Progress in RLHF - Insights into the Impact of Reward Models and PPO
 description: In this blog, we summarize recent research and design experiments to explore the generalization process in RLHF. The generalization in RLHF involves two primary aspects - generalization originating from the training of the reward model and generalization resulting from PPO training. The generalization of the reward model primarily stems from the preference datasets and the inherent generalization capabilities of pre-trained models. Meanwhile, the generalization achieved through PPO training encompasses two key components - generalization derived from on-policy samples and generalization stemming from token-wise rewards. Based on these findings, we offer some recommendations for data construction in RLHF.
-date: 2025-05-07
+date: 2025-04-28
 future: true
 htmlwidgets: true
 hidden: false
@@ -12,7 +12,7 @@ authors:
   - name: Anonymous
 
 # must be the exact same name as your blogpost
-bibliography: 2025-05-07-rlhf-generalization.bib
+bibliography: 2025-04-28-rlhf-generalization.bib
 
 # Add a table of contents to your post.
 #   - make sure that TOC names match the actual section names
@@ -51,11 +51,11 @@ Finally, we give some recommendations for data construction in RLHF based on the
 
 **Reward Model Training:** The reward model provides LLMs with a signal that guides the reinforcement learning process. In general, we first gather datasets consisting of prompts, LLM responses, and corresponding human feedback (ratings, rankings, or other forms of evaluation). This feedback serves as the ground truth for training the reward model. Then, we train the reward model using supervised learning techniques on the collected data. The model learns to predict the reward associated with each LLM response given a prompt and the corresponding human feedback <d-cite key="huggingface-blog-rlhf"></d-cite>.
 
-{% include figure.html path="assets/img/2025-05-07-rlhf-generalization/reward-model.png" class="img-fluid" %} <div class="caption">Figure 1: Reward model training process (from <d-cite key="huggingface-blog-rlhf"></d-cite>).</div>
+{% include figure.html path="assets/img/2025-04-28-rlhf-generalization/reward-model.png" class="img-fluid" %} <div class="caption">Figure 1: Reward model training process (from <d-cite key="huggingface-blog-rlhf"></d-cite>).</div>
 
 **Fine-tuning with RL:** Given a reward model, we employ RL to fine-tune the policy of a LLM. First, the **policy** is a language model that takes in a prompt and returns a sequence of text (or just probability distributions over text). The **action space** of this policy is all the tokens corresponding to the vocabulary of the language model and the **observation space** is the distribution of possible input token sequences, which is also quite **large given previous uses of RL** (the dimension is approximately the size of vocabulary ^ length of the input token sequence). The **reward function** is a combination of the preference model and a constraint on policy shift. Finally, the **update rule** is the parameter update of the policy from PPO that maximizes the reward metrics in the current batch of data <d-cite key="newfacade-notes-on-reinforcement-learning"></d-cite>.
 
-{% include figure.html path="assets/img/2025-05-07-rlhf-generalization/image.png" class="img-fluid" %} <div class="caption">Figure 2: The reinforcement learning from human feedback (from <d-cite key="newfacade-notes-on-reinforcement-learning"></d-cite>).</div>
+{% include figure.html path="assets/img/2025-04-28-rlhf-generalization/image.png" class="img-fluid" %} <div class="caption">Figure 2: The reinforcement learning from human feedback (from <d-cite key="newfacade-notes-on-reinforcement-learning"></d-cite>).</div>
 
 ## Generalization Progress in Reward Model
 
@@ -71,9 +71,9 @@ OpenAI has demonstrated the generalization ability from reward model in RLHF pro
     * The losses on reward validation dataset break down by increasing preference dataset size and reward model size (Figure 3).
     * Both best of N strategy and RL benefits from the scaling of reward model size and preference dataset size (Figure 4).
       
-{% include figure.html path="assets/img/2025-05-07-rlhf-generalization/image1.png" class="img-fluid" %} <div class="caption">Figure 3: RM losses broken down by data size and RM size (from <d-cite key="gao2023scaling"></d-cite>).</div>     
+{% include figure.html path="assets/img/2025-04-28-rlhf-generalization/image1.png" class="img-fluid" %} <div class="caption">Figure 3: RM losses broken down by data size and RM size (from <d-cite key="gao2023scaling"></d-cite>).</div>     
 
-{% include figure.html path="assets/img/2025-05-07-rlhf-generalization/image2.png" class="img-fluid" %} <div class="caption">Figure 4: RM data scaling experiments (from <d-cite key="gao2023scaling"></d-cite>). RM size is held constant (12M), while RM data is varied. The x-axis has a square root scale. Note that the plots have different axes. Dotted lines indicate proxy rewards, solid lines indicate gold rewards.</div>
+{% include figure.html path="assets/img/2025-04-28-rlhf-generalization/image2.png" class="img-fluid" %} <div class="caption">Figure 4: RM data scaling experiments (from <d-cite key="gao2023scaling"></d-cite>). RM size is held constant (12M), while RM data is varied. The x-axis has a square root scale. Note that the plots have different axes. Dotted lines indicate proxy rewards, solid lines indicate gold rewards.</div>
 
 Additionally, we demonstrate the generalization ability of reward model through our experiments utilizing leetcode datasets. Specifically, we initially gathered 1200 Python prompts from the leetcode website spanning from September 2022 to September 2023 for our training set, and another 474 prompts from September 2023 to June 2024 for our test set. Subsequently, we collected five responses per prompt from various models, including GPT4, GPT4o, Deepseek, among others, for both the training and test sets. Finally, we submitted these responses to the leetcode website to ascertain the ground truth for each response, yielding 30,000 training preference pairs and 12,000 test preference pairs.
 
