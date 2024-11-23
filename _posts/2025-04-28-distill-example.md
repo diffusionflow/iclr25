@@ -1,7 +1,7 @@
 ---
 layout: distill
 title: "Diffusion Models and Gaussian Flow Matching: Two Sides of the Same Coin"
-description: "Flow matching and diffusion models are two popular frameworks in generative modeling. Despite seeming similar, there is general confusion in the community about their exact connection. In this post we aim to clear up this confusion and show that <i>diffusion model and Gaussian flow matching are the same</i>, although  different model specifications can lead to different noise schedules and loss weighting terms. This means you can use the two frameworks interchangeably, as we will show."
+description: "Flow matching and diffusion models are two popular frameworks in generative modeling. Despite seeming similar, there is some confusion in the community about their exact connection. In this post we aim to clear up this confusion and show that <i>diffusion models and Gaussian flow matching are the same</i>, although  different model specifications can lead to different noise schedules and loss weighting terms. This means you can use the two frameworks interchangeably, as we will show."
 date: 2025-11-12
 future: true
 htmlwidgets: true
@@ -34,12 +34,10 @@ bibliography: 2025-04-28-distill-example.bib
 #   - please use this format rather than manually creating a markdown table of contents.
 toc:
   - name: Overview
+  - name: Sampling
   - name: Training
-    subsections:
-    - name: Network output
-    - name: Noise schedule
-    - name: Weighting function
-  - name: Sampling and Straightness Misnomer
+  - name: Diving deeper into samplers
+  - name: From Diffusion Models to Flow Matching and Back
 
 # Below is an example of injecting additional post-specific styles.
 # This is used in the 'Layouts' section of this post.
@@ -79,13 +77,15 @@ We start with a quick overview of the two frameworks.
 
 ### Diffusion models
 
-A diffusion process gradually destroys an observed datapoint $$ \bf{x} $$ (such as an image) over multiple time steps, indexed by $$t$$, by mixing the data with Gaussian noise. More precisely, the noisy version of the input at time $$t$$ is given by:
+A diffusion process gradually destroys an observed datapoint $$\bf{x}$$ (such as an image) over multiple time steps, indexed by $$t$$, by mixing the data with Gaussian noise. More precisely, the noisy version of the input at time $$t$$ is given by:
+
 $$
 \begin{equation}
 {\bf z}_t = \alpha_t {\bf x} + \sigma_t {\boldsymbol \epsilon}, \;\mathrm{where} \; {\boldsymbol \epsilon} \sim \mathcal{N}(0, {\bf I}).
 \label{eq:forward}
 \end{equation}
 $$
+
 Here $$\alpha_t$$ and $$\sigma_t$$ define the **noise schedule** ,such as the variance-preserving schedule ($$\alpha_t^2 + \sigma_t^2 = 1$$). An important quantity we will need later is the log signal-to-noise ratio, given by $$\lambda_t = \log(\alpha_t^2 / \sigma_t^2)$$, which decreases as $$t$$ increases from $$0$$ (clean data) to $$1$$ (Gaussian noise).
 
 To generate new samples, we can gradually "reverse" the forward process. At $$t=1$, we initialize by  sampling $$z_1$$ from a standard Gaussian. To generate a new sample $${\bf z}_t$$ given  $${\bf z}_t$$, where $$s<t$$ (so $s$ is closer to the clean data), we first predict what the clean sample might look like with a neural network (a.k.a. denoiser model): $$\hat{\bf x} = \hat{\bf x}({\bf z}_t; t)$$;  then we project this predicted clean sample back to the lower noise level $$s$$:
@@ -95,19 +95,23 @@ $$
 {\bf z}_{s} &=& \alpha_{s} \hat{\bf x} + \sigma_{s} \hat{\boldsymbol \epsilon},\\
 \end{eqnarray}
 $$
+
 where $$\hat{\boldsymbol \epsilon} = ({\bf z}_t - \alpha_t \hat{\bf x}) / \sigma_t$$. (Rather than predicting the clan data $$\hat{\bf x}$$, we can alternatively predict the noise $$\hat{\boldsymbol \epsilon}$$ with a neural network.) We keep alternating between predicting the clean data, and projecting it back to a lower noise level, until we get the clean sample at $$t=0$$. This scheme is equivalent to the DDIM sampler <d-cite key="song2020denoising"></d-cite>. The randomness of samples only comes from the initial Gaussian sample --- the entire reverse process is deterministic. We will discuss the stochastic samplers later. 
 
 ### Flow matching
 
 Flow Matching provides a different way to define the forward process:  we define $${\bf z}_t$$ to be a linear interpolation of the clean data  $${\bf x}$$ and an arbitrary noise term $$\boldsymbol \epsilon$$ drawn from the source (generating) distribution:
+
 $$
 \begin{eqnarray}
 {\bf z}_t = t {\bf x} + (1-t) {\boldsymbol \epsilon}.\\
 \end{eqnarray}
 $$
+
 Although this looks different to diffusion, it is equivalent if we assume the noise source is Gaussian (which we will from now on), and if we set  $$\alpha_t = t, \sigma_t = 1-t$$. 
 
 We can define $${\bf z}_s = s {\bf x} + (1-s) {\boldsymbol \epsilon}$$ in a similar manner. Some simple algebra then shows that we have $${\bf z}_t = {\bf z}_{s} + {\bf u} (t - s) $$, where $${\bf u} = {\bf x} - {\bf \epsilon}$$ is the "velocity", "flow", or "vector field". Thus to generate $${\bf z}_s$$ from $${\bf z}_t$, we can predict the vector field $$\hat{\bf u} = \hat{\bf u}({\bf z}_t; t) = \hat{\bf x} - \hat{\boldsymbol \epsilon}$$ using a neural network, and then compute
+
 $$
 \begin{eqnarray}
 {\bf z}_{s} = {\bf z}_t + \hat{\bf u}(s - t).\\
