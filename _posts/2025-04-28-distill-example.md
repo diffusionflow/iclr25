@@ -75,15 +75,19 @@ The purpose of this blog post is to explain that the two methods are equivalent 
 We start with a quick overview of the two frameworks.
 
 
-A diffusion process gradually destroys an observed data $$ \bf{x} $$ over time $$t$$, by mixing the data with Gaussian noise. Summing up this noise over time gives:
+
+### Diffusion models
+
+A diffusion process gradually destroys an observed datapoint $${\bf x}$$ (such as an image) over multiple time steps, indexed by $$t$$, by mixing the data with Gaussian noise. More precisely, the noisy version of the input at time $$t$$ is given by:
+
 $$
 \begin{equation}
 {\bf z}_t = \alpha_t {\bf x} + \sigma_t {\boldsymbol \epsilon}, \;\mathrm{where} \; {\boldsymbol \epsilon} \sim \mathcal{N}(0, {\bf I}).
 \label{eq:forward}
 \end{equation}
 $$
-$$\alpha_t$$ and $$\sigma_t$$ define the **noise schedule**. A commonly used one is the variance-preserving schedule ($$\alpha_t^2 + \sigma_t^2 = 1$$). A useful notation is the log signal-to-noise ratio $$\lambda_t = \log(\alpha_t^2 / \sigma_t^2)$$, which decreases as $$t$$ increases from $$0$$ (clean data) to $$1$$ (Gaussian noise).
 
+Here $$\alpha_t$$ and $$\sigma_t$$ define the **noise schedule** ,such as the variance-preserving schedule ($$\alpha_t^2 + \sigma_t^2 = 1$$). An important quantity we will need later is the log signal-to-noise ratio, given by $$\lambda_t = \log(\alpha_t^2 / \sigma_t^2)$$, which decreases as $$t$$ increases from $$0$$ (clean data) to $$1$$ (Gaussian noise).
 
 ### Comparison
 
