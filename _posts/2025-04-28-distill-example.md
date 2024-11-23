@@ -34,9 +34,16 @@ bibliography: 2025-04-28-distill-example.bib
 #   - please use this format rather than manually creating a markdown table of contents.
 toc:
   - name: Overview
-  - name: Sampling
+  - name: Sampling and Straightness Misnomer
   - name: Training
+    subsections:
+    - name: What’s the weight?
+    - name: Network output
+    - name: Noise schedule
   - name: Diving deeper into samplers
+    subsections:
+    - name: Reflow operator
+    - name: Deterministic vs. stochastic
   - name: From Diffusion Models to Flow Matching and Back
 
 # Below is an example of injecting additional post-specific styles.
@@ -392,3 +399,23 @@ $$
 
 We have the similar conclusion, that under this transformation, diffusion models and flow matching frameworks coincide. 
 To sum up, leaving aside training issues and the choice of the sampler, there is no fundamental differences between the two approaches.
+
+## Closing thoughts
+
+{% include figure.html path="assets/img/2025-04-28-distill-example/coin.png" class="img-fluid" %}
+
+
+If you've read this far, we hope we've convinced you that diffusion models and Gaussian flow matching are, in practice, equivalent. When developing your own codebase or techniques, there’s no need to implement them separately under these two “distinct” frameworks. Similarly, if you’re working on one method, it’s likely unnecessary to reframe it within the context of the other. The key is to focus on the design choices that truly matter.
+
+
+For training: What is the effective weighting function, and does it appropriately balance the different components in the data? What is the network output, and does it remain meaningful across all noise levels? Is the noise schedule designed efficiently to ensure fast convergence of training?
+
+For sampling: DDIM sampling is equivalent to flow-matching sampling. However, the "straightness" of deterministic sampling heavily depends on the data distribution. On the other hand, the level of noise in stochastic sampling can be freely adjusted, based on a trade-off between accuracy and efficiency.
+
+With this equivalence in mind, improvements made to specific design choices in one framework will naturally benefit the other. We hope this perspective helps practitioners have more fun playing with these models, while fostering deeper connections between works in the literature.
+
+
+
+
+
+
