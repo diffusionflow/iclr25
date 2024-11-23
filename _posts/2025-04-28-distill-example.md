@@ -63,6 +63,7 @@ _styles: >
 
 {% include figure.html path="assets/img/2025-04-28-distill-example/twotrees.jpg" class="img-fluid" %}
 
+KEVIN HACKS INTO THE SOURCE
 
 Flow matching is gaining popularity recently, due to its simplicity in formulation and "straightness" in the sampling trajectories. A common question one hears nowadays is: 
 
