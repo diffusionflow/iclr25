@@ -74,61 +74,61 @@ The purpose of this blog post is to explain that the two methods are equivalent 
 
 ## Overview
 
-We start by a quick overview of the two frameworks. We compare them from a high level and will see that the *processes* are the same.
-<!-- We highlight the free parameters in each framework and how they relate to each other. 
-In particular, there exists explicit mappings to define a diffusion model from a flow matching model and vice-versa. This overview does not dive into the training of such models, i.e., we assume that all the learnable quantities have been adequatly optimized. We also do not discuss the different sampling techniques used at inference. Both the training and the inference will be discussed in further sections.  -->
+We start with a quick overview of the two frameworks.
 
 
 ### Diffusion models
 
-A diffusion process gradually destroys an observed data $$ \bf{x} $$ over time $$t$$, by mixing the data with Gaussian noise. Summing up this noise over time gives:
+A diffusion process gradually destroys an observed datapoint $$ \bf{x} $$ (such as an image) over multiple time steps, indexed by $$t$$, by mixing the data with Gaussian noise. More precisely, the noisy version of the input at time $$t$$ is given by:
 $$
 \begin{equation}
 {\bf z}_t = \alpha_t {\bf x} + \sigma_t {\boldsymbol \epsilon}, \;\mathrm{where} \; {\boldsymbol \epsilon} \sim \mathcal{N}(0, {\bf I}).
 \label{eq:forward}
 \end{equation}
 $$
-$$\alpha_t$$ and $$\sigma_t$$ define the **noise schedule**. A commonly used one is the variance-preserving schedule ($$\alpha_t^2 + \sigma_t^2 = 1$$). A useful notation is the log signal-to-noise ratio $$\lambda_t = \log(\alpha_t^2 / \sigma_t^2)$$, which decreases as $$t$$ increases from $$0$$ (clean data) to $$1$$ (Gaussian noise).
+Here $$\alpha_t$$ and $$\sigma_t$$ define the **noise schedule** ,such as the variance-preserving schedule ($$\alpha_t^2 + \sigma_t^2 = 1$$). An important quantity we will need later is the log signal-to-noise ratio, given by $$\lambda_t = \log(\alpha_t^2 / \sigma_t^2)$$, which decreases as $$t$$ increases from $$0$$ (clean data) to $$1$$ (Gaussian noise).
 
-To generate new samples, we can "reverse" the forward process gradually: Initialize the sample from Gaussian at the highest noise level. Given the sample $${\bf z}_t$$ at time step $$t$$, we predict what the clean sample might look like with a neural network $$\hat{\bf x} = \hat{\bf x}({\bf z}_t; t)$$ (a.k.a. denoiser model), and then we project it back to a lower noise level $$s$$ with the same forward transformation:
+To generate new samples, we can gradually "reverse" the forward process. At $$t=1$, we initialize by  sampling $$z_1$$ from a standard Gaussian. To generate a new sample $${\bf z}_t$$ given  $${\bf z}_t$$, where $$s<t$$ (so $s$ is closer to the clean data), we first predict what the clean sample might look like with a neural network (a.k.a. denoiser model): $$\hat{\bf x} = \hat{\bf x}({\bf z}_t; t)$$;  then we project this predicted clean sample back to the lower noise level $$s$$:
 
 $$
 \begin{eqnarray}
 {\bf z}_{s} &=& \alpha_{s} \hat{\bf x} + \sigma_{s} \hat{\boldsymbol \epsilon},\\
 \end{eqnarray}
 $$
-where $$\hat{\boldsymbol \epsilon} = ({\bf z}_t - \alpha_t \hat{\bf x}) / \sigma_t$$. We can also parametrize $$\hat{\boldsymbol \epsilon}$$ with a neural network. We keep alternating between predicting the clean data, and projecting it back to a lower noise level until we get the clean sample.
-This is the DDIM sampler <d-cite key="song2020denoising"></d-cite>. The randomness of samples only comes from the initial Gaussian sample, and the entire reverse process is deterministic. We will discuss the stochastic samplers later. 
+where $$\hat{\boldsymbol \epsilon} = ({\bf z}_t - \alpha_t \hat{\bf x}) / \sigma_t$$. (Rather than predicting the clan data $$\hat{\bf x}$$, we can alternatively predict the noise $$\hat{\boldsymbol \epsilon}$$ with a neural network.) We keep alternating between predicting the clean data, and projecting it back to a lower noise level, until we get the clean sample at $$t=0$$. This scheme is equivalent to the DDIM sampler <d-cite key="song2020denoising"></d-cite>. The randomness of samples only comes from the initial Gaussian sample --- the entire reverse process is deterministic. We will discuss the stochastic samplers later. 
 
 ### Flow matching
-Flow Matching provides another perspective of the forward process: we view it as a direct interpolation between the data $${\bf x}$$ and the Gaussian noise $$\boldsymbol \epsilon$$, not adding noise gradually. In the more general case, $$\boldsymbol \epsilon$$ can also be sampled from an arbitrary distribution. The forward process should look familiar to the reader, and is defined as:
+
+Flow Matching provides a different way to define the forward process:  we define $${\bf z}_t$$ to be a linear interpolation of the clean data  $${\bf x}$$ and an arbitrary noise term $$\boldsymbol \epsilon$$ drawn from the source (generating) distribution:
 $$
 \begin{eqnarray}
 {\bf z}_t = t {\bf x} + (1-t) {\boldsymbol \epsilon}.\\
 \end{eqnarray}
 $$
+Although this looks different to diffusion, it is equivalent if we assume the noise source is Gaussian (which we will from now on), and if we set  $$\alpha_t = t, \sigma_t = 1-t$$. 
 
-It corresponds to the diffusion forward process with $$\alpha_t = t, \sigma_t = 1-t$$. The flow from time $$s$$ to $$t$$ ($$s < t$$) can be expressed as $${\bf z}_t = {\bf z}_{s} + {\bf u} (t - s) $$, where $${\bf u} = {\bf x} - {\bf \epsilon}$$ is the "velocity", "flow", or "vector field". For sampling, we reverse the time and replace the vector field with our best guess of the clean data at time step $$t$$, since we do not have access to it during sampling:
-
+We can define $${\bf z}_s = s {\bf x} + (1-s) {\boldsymbol \epsilon}$$ in a similar manner. Some simple algebra then shows that we have $${\bf z}_t = {\bf z}_{s} + {\bf u} (t - s) $$, where $${\bf u} = {\bf x} - {\bf \epsilon}$$ is the "velocity", "flow", or "vector field". Thus to generate $${\bf z}_s$$ from $${\bf z}_t$, we can predict the vector field $$\hat{\bf u} = \hat{\bf u}({\bf z}_t; t) = \hat{\bf x} - \hat{\boldsymbol \epsilon}$$ using a neural network, and then compute
 $$
 \begin{eqnarray}
 {\bf z}_{s} = {\bf z}_t + \hat{\bf u}(s - t).\\
 \label{eq:flow_update}
 \end{eqnarray}
 $$
-$$\hat{\bf u} = \hat{\bf u}({\bf z}_t; t) = \hat{\bf x} - \hat{\boldsymbol \epsilon}$$ can be parametrized by a neural network.
 
 
-So far we can already sense the similar flavors of the two frameworks:
+### Comparison
+
+We can already see that the two frameworks are very similar, but there seem to be some differences, too.
+To summarize what we have seen so far:
 
 
 <div style="padding: 10px 10px 10px 10px; border-left: 6px solid #FFD700; margin-bottom: 20px;">
-  <p>1. <strong>Same forward process</strong>: assume that one end of flow matching is Gaussian, and the noise schedule of diffusion models is in a particular form. </p>
-  <p  style="margin: 0;">2. <strong>"Similar" sampling processes</strong>: both follow an iterative update that involves a guess of the clean data at the current time step. (Spoiler: we will show they are exactly the same!)</p>
+  <p>1. <strong>Same forward process</strong>: If we assume that one end of flow matching is a Gaussian distribtuion, and if we define the noise schedule of diffusion models in a particular form, then we have shown that the two approaches define an identical forward process. </p>
+  <p  style="margin: 0;">2. <strong>"Similar" sampling processes</strong>: we have shown that both methods follow an iterative update that involves a guess of the clean data at the current time step and then an update. Below we will show that the sampling process turns out to be identical. </p>
 </div>
 
 
-## Sampling and Straightness Misnomer
+## Sampling 
 
 A common thought is that the two frameworks are different in sampling: Flow matching is deterministic and with "straight" paths, while diffusion model sampling is stochastic and with curved paths. Let's discuss it first. 
 
@@ -217,7 +217,7 @@ Two important takeaways from determinstic sampling:
 
 <!-- 1. For DDIM the interpolation between data and noise is irrelevant and always equivalant to flow matching <d-footnote>The variance exploding formulation ($\alpha_t = 1$, $\sigma_t = t$) is also equivalant to DDIM and flow matching. -->
 
-## Training (weighting, output, schedule)
+## Training 
 
 <!-- For training, a neural network is estimated to predict $$\hat{\boldsymbol \epsilon} = \hat{\boldsymbol \epsilon}({\bf z}_t; t)$$ that effectively estimates $${\mathbb E} [{\boldsymbol \epsilon} \vert {\bf z}_t]$$, the expected noise added to the data given the noisy sample. Other **model outputs** have been proposed in the literature which are linear combinations of $$\hat{\boldsymbol \epsilon}$$ and $${\bf z}_t$$, and $$\hat{\boldsymbol \epsilon}$$ can be derived from the model output given $${\bf z}_t$$.  -->
 
@@ -242,7 +242,7 @@ $$
 Since $$\hat{\bf u}$$ is also a linear combination of $$\hat{\bf x}$$ and $${\bf z}_t$$, the CFM training objective can be rewritten as mean squared error on $${\bf x}$$ with a specific weighting. 
 
 
-### What's the weight?
+### How do we choose the weighting term?
 The weighting is the most important part of the loss, it balances the importance of high frequency and low frequency components.  **(TODO, making a figure to illustrate weighting function versus frequency components.)** 
 This is important when modeling images, videos and audios, as certain high frequency components in those signals are not visible to human perception, and thus better not to waste model capacity on them. Viewing losses via their weighting, one can derive that:
 
@@ -253,7 +253,7 @@ This is important when modeling images, videos and audios, as certain high frequ
 
 That is, the flow matching training objective is the same as a commonly used setting in diffusion models! See Appendix D.2-3 in <d-cite key="kingma2024understanding"></d-cite> for a detailed derivation. Figure **TODO** plots several commonly used weighting functions in the literature. 
 
-### Network output
+### How do we choose what the network should output?
 Below we summarize several network outputs proposed in the literature, including a few of diffusion models and the one of flow matching. One may see the training objective defined with different network outputs in different papers. From the perspective of training objective, they all correspond to having some additional weighting in front of the $${\bf x}$$-MSE that can be absorbed in the weighting function. 
 
 | Network Output  | Formulation   | MSE on Network Output  |
@@ -270,12 +270,13 @@ In practice, however, the model output might make a difference. For example,
 Therefore, a heuristic is to choose a network output that is a combination of $${\bf x}$$- and $${\boldsymbol \epsilon}$$-prediction, which applies to the $${\bf v}$$-prediction and the flow matching vector field $${\bf u} = {\bf x} - {\bf \epsilon}$$.
 
 
-### Noise schedule
+### How do we choose the noise schedule?
 A few remarks about training noise schedule:
 1. All noise schedules can be normalized as a variance-preserving schedule, with a linear scaling of $${\bf z}_t$$ and an unscaling at the network input. The key defining property of a noise schedule is the log signal-to-noise ratio $$\lambda_t$$.
 2. The training loss is *invariant* to the training noise schedule, since the loss fuction can be rewritten as $$\mathcal{L}(\mathbf{x}) = \int_{\lambda_{\min}}^{\lambda_{\max}} w(\lambda) \mathbb{E}_{\boldsymbol{\epsilon} \sim \mathcal{N}(0, \mathbf{I})} \left[ \|\hat{\boldsymbol{\epsilon}} - \boldsymbol{\epsilon}\|_2^2 \right] \, d\lambda$$, which is only related to the endpoints but not the schedule of $$\lambda_t$$. However, $$\lambda_t$$ might still affect the variance of the Monte Carlo estimator of the training loss. A few heuristics have been proposed in the literature to automatically adjust the noise schedules over the training course. [Sander's blog post](https://sander.ai/2024/06/14/noise-schedules.html#adaptive) has a nice summary.
 3. one can choose completely different noise schedules for training and sampling, based on distinct heuristics: For training, it is desirable to have a noise schedule that minimizes the variance of the Monte Calor estimator, whereas for sampling the noise schedule is more related to the discretization error of the ODE / SDE sampling trajectories and the model curvature.
 
+### Summary
 
 In summary, we have the following conclusions for diffusion models / flow matching training:
 
@@ -289,6 +290,7 @@ In summary, we have the following conclusions for diffusion models / flow matchi
 
 ## Diving deeper into samplers
 
+In this section, we discuss different kinds of samplers in more detail.
 
 ### Reflow operator
 
