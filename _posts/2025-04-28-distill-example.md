@@ -270,7 +270,11 @@ This is important when modeling images, videos and audio, as certain high freque
   <p align="center" style="margin: 0;"><em>Flow matching weighting == diffusion weighting of ${\bf v}$-MSE loss + cosine noise schedule.</em></p>
 </div>
 
-That is, the flow matching training objective is the same as a commonly used setting in diffusion models! See Appendix D.2-3 in <d-cite key="kingma2024understanding"></d-cite> for a detailed derivation. Figure **TODO** plots several commonly used weighting functions in the literature. 
+That is, the flow matching training objective is the same as a commonly used setting in diffusion models! See Appendix D.2-3 in <d-cite key="kingma2024understanding"></d-cite> for a detailed derivation. Below we plot several commonly used weighting functions in the literature, as a function of $$\lambda$$.
+
+<div class="m-page">
+  <iframe src="{{ 'assets/html/2025-04-28-distill-example/weighting_functions.html' | relative_url }}" frameborder='0' scrolling='no' height="600px" width="100%"></iframe>
+</div>
 
 ### How do we choose the noise schedule?
 
@@ -428,4 +432,13 @@ $$
 To sum up, leaving aside training issues and the choice of the sampler, there is no fundamental differences between diffusion and Gaussian flow matching.
 
 
+## Closing thoughts
+{% include figure.html path="assets/img/2025-04-28-distill-example/coin.png" class="img-fluid" %}
 
+If you've read this far, we hope we've convinced you that diffusion models and Gaussian flow matching are, in practice, equivalent. When developing your own codebase or techniques, there’s no need to implement them separately under these two “distinct” frameworks. Similarly, if you’re working on one method, it’s likely unnecessary to reframe it within the context of the other. The key is to focus on the design choices that truly matter.
+
+For training: What is the effective weighting function, and does it appropriately balance the different components in the data? What is the network output, and does it remain meaningful across all noise levels? Is the noise schedule designed efficiently to ensure fast convergence of training?
+
+For sampling: DDIM sampling is equivalent to flow-matching sampling. However, the "straightness" of deterministic sampling heavily depends on the data distribution. On the other hand, the level of noise in stochastic sampling can be freely adjusted, based on a trade-off between accuracy and efficiency.
+
+With this equivalence in mind, improvements made to specific design choices in one framework will naturally benefit the other. We hope this perspective helps practitioners have more fun playing with these models, while fostering deeper connections between works in the literature.
